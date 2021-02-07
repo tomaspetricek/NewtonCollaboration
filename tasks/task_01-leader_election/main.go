@@ -19,9 +19,9 @@ func electLeader(e *concurrency.Election, ctx context.Context, done chan bool){
 func doTillWorkDone(){
 	for {
 		select{
-		case <-printTicker.C:
+		case <-printNow.C:
 			fmt.Println("I'm a leader.")
-		case <-workTimer.C:
+		case <-workDone.C:
 			fmt.Println("Work is done.")
 			return
 		}
@@ -34,7 +34,7 @@ func doTillElected(){
 		select {
 		case <- isLeader:
 			return
-		case <-printTicker.C:
+		case <-printNow.C:
 			fmt.Println("I'm a follower.")
 		}
 	}
@@ -46,9 +46,9 @@ const (
 )
 
 var (
-	printTicker   *time.Ticker
-	workTimer     *time.Timer
-	isLeader    = make(chan bool, 1)
+	printNow *time.Ticker
+	workDone *time.Timer
+	isLeader = make(chan bool, 1)
 )
 
 func main() {
@@ -68,14 +68,14 @@ func main() {
 	e := concurrency.NewElection(s, "/leader-election")
 	ctx := context.Background()
 
-	printTicker = time.NewTicker(printInterval)
+	printNow = time.NewTicker(printInterval)
 	for{
 		// get elected
 		go electLeader(e, ctx, isLeader)
 		doTillElected()
 
 		// do work
-		workTimer = time.NewTimer(workTime)
+		workDone = time.NewTimer(workTime)
 		doTillWorkDone()
 
 		// resign
